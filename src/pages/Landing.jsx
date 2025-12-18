@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { Lock, Sun, Moon } from 'lucide-react';
+import '@rainbow-me/rainbowkit/styles.css';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+
 
 export default function DAppLanding() {
   const [isDark, setIsDark] = useState(true);
@@ -75,7 +78,7 @@ export default function DAppLanding() {
 
         {/* Connect Wallet Button */}
         {!isConnected ? (
-          <button
+          <ConnectButton
             onClick={connectWallet}
             className={`px-8 py-4 text-lg font-semibold rounded-lg transition-all duration-300 ${
               isDark
@@ -84,7 +87,7 @@ export default function DAppLanding() {
             }`}
           >
             Connect Wallet
-          </button>
+          </ConnectButton>
         ) : (
           <div className="flex flex-col items-center gap-4">
             <div className={`px-6 py-3 rounded-lg font-mono transition-colors duration-300 ${
