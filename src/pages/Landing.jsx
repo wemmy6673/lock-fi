@@ -7,7 +7,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 function Landing({ onConnect, isDark, toggleTheme }) {
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
-      isDark ? 'bg-gray-900' : 'bg-gray-50'
+      isDark ? 'bg-black' : 'bg-gray-50'
     }`}>
       {/* Theme Toggle Button */}
       <div className="absolute top-6 right-6">
@@ -39,25 +39,60 @@ function Landing({ onConnect, isDark, toggleTheme }) {
         <h1 className={`text-5xl font-bold mb-12 transition-colors duration-300 ${
           isDark ? 'text-white' : 'text-gray-900'
         }`}>
-          Token Locker
+          Lock-fi
         </h1>
 
         {/* Connect Wallet Button - Replace with RainbowKit's ConnectButton */}
-        <ConnectButton
-          onClick={onConnect}
-          className={`px-8 py-4 text-lg font-semibold rounded-lg transition-all duration-300 ${
-            isDark
-              ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg shadow-purple-500/50'
-              : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-xl'
-          }`}
-        >
-          Connect Wallet
-        </ConnectButton>
+         {/* RainbowKit Connect Button with Custom Styling */}
+        <ConnectButton.Custom>
+          {({
+            account,
+            chain,
+            openAccountModal,
+            openChainModal,
+            openConnectModal,
+            mounted,
+          }) => {
+            const ready = mounted;
+            const connected = ready && account && chain;
+
+            return (
+              <div
+                {...(!ready && {
+                  'aria-hidden': true,
+                  style: {
+                    opacity: 0,
+                    pointerEvents: 'none',
+                    userSelect: 'none',
+                  },
+                })}
+              >
+                {(() => {
+                  if (!connected) {
+                    return (
+                      <button
+                        onClick={openConnectModal}
+                        type="button"
+                        className={`px-8 py-3 text-lg font-semibold rounded-lg transition-all duration-300 ${
+                          isDark
+                            ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg shadow-purple-500/50'
+                            : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-xl'
+                        }`}
+                      >
+                        Connect Wallet
+                      </button>
+                    );
+                  }
+                })()}
+              </div>
+            );
+          }}
+        </ConnectButton.Custom>
 
         <p className={`mt-8 text-sm transition-colors duration-300 ${
           isDark ? 'text-gray-400' : 'text-gray-600'
         }`}>
-          Connect your wallet to access token locking
+          Connect your wallet to lock or access unlocked tokens.
         </p>
       </div>
     </div>
