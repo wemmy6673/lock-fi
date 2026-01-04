@@ -1,12 +1,15 @@
 import { useAccount, useDisconnect } from 'wagmi';
 import { useState, useEffect } from 'react';
 import { Lock, Sun, Moon, Clock, Coins } from 'lucide-react';
+import { useReadContract } from 'wagmi'
+import { wagmiContractConfig } from '../../Contracts'
+
+
 
 
 function Dashboard({ isDark, toggleTheme }) {
   const{ address: walletAddress } = useAccount();
   const { disconnect } = useDisconnect();
-  const [tokenBalance, setTokenBalance] = useState('1,250.50');
   const [activeLocks, setActiveLocks] = useState([
     { id: 1, amount: '500', endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), daysRemaining: 7 },
     { id: 2, amount: '250', endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), daysRemaining: 30 }
@@ -22,6 +25,15 @@ function Dashboard({ isDark, toggleTheme }) {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
+
+const { data: balance } = useReadContract({
+  ...wagmiContractConfig,
+  functionName: 'balanceOf',
+  args: walletAddress ? [walletAddress] : undefined,
+  query: {
+    enabled: !!walletAddress, // Only run if wallet is connected
+  }
+})
   const createVault = () => {
     if (!amount || parseFloat(amount) <= 0) {
       setError('Please enter a valid amount');
@@ -211,7 +223,7 @@ function Dashboard({ isDark, toggleTheme }) {
             </h3>
           </div>
           <p className={`text-4xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            {tokenBalance} TOKENS
+            {balance?.toString()} WILDCOINS
           </p>
         </div>
         
