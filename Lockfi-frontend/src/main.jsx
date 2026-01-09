@@ -15,21 +15,19 @@ import {
   optimism,
   arbitrum,
   base,
+  celoSepolia,  // ← Just import it like other chains!
 } from 'wagmi/chains';
 import {
   QueryClientProvider,
   QueryClient,
 } from "@tanstack/react-query";
 
-
-
-
 const queryClient = new QueryClient();
 const config = getDefaultConfig({
   appName: 'My RainbowKit App',
   projectId: '9786028962cecdd7167d7eb4bc1649c0',
-  chains: [mainnet, polygon, optimism, arbitrum, base],
-  ssr: true, // If your dApp uses server side rendering (SSR)
+  chains: [celoSepolia, mainnet, polygon, optimism, arbitrum, base],
+  ssr: true,
 });
 
 createRoot(document.getElementById('root')).render(
@@ -37,7 +35,6 @@ createRoot(document.getElementById('root')).render(
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
-          {/* Your App */}
           <App />
         </RainbowKitProvider>
       </QueryClientProvider>

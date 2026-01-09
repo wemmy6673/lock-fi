@@ -1,8 +1,9 @@
 import { useAccount, useDisconnect } from 'wagmi';
 import { useState, useEffect } from 'react';
 import { Lock, Sun, Moon, Clock, Coins } from 'lucide-react';
-import { useReadContract } from 'wagmi'
-import { wagmiContractConfig } from '../../Contracts'
+import { useReadContract, useBalance } from 'wagmi'
+import { formatUnits } from 'viem';
+import { wagmiContractConfig } from '../../contract';
 
 
 
@@ -26,14 +27,40 @@ function Dashboard({ isDark, toggleTheme }) {
   };
 
 
+const { data: decimals } = useReadContract({
+  ...wagmiContractConfig,
+  functionName: 'decimals',
+})
+
 const { data: balance } = useReadContract({
   ...wagmiContractConfig,
   functionName: 'balanceOf',
-  args: walletAddress ? [walletAddress] : undefined,
+  args: [walletAddress],
   query: {
-    enabled: !!walletAddress, // Only run if wallet is connected
-  }
+    enabled: !!walletAddress,
+  },
 })
+
+useEffect(() => {
+  console.log('Wallet Address:', walletAddress);
+  console.log('Balance (raw):', balance?.toString());
+  console.log('Decimals:', decimals);
+  console.log('Error:', error);
+}, [balance, decimals, walletAddress, error]);
+
+
+// Format the balance
+const formattedBalance = balance && decimals 
+  ? parseFloat(formatUnits(balance, decimals)).toFixed(4)
+  : '0.0000';
+
+// function readBalance() {
+//  const { data: balance } = useBalance({
+//     address: walletAddress,
+//     token: '0x9F6fc2403352748E35b7c55fF1b7E2D46927A326', // Your deployed contract
+//   })
+//   alert(balance);
+// }
   const createVault = () => {
     if (!amount || parseFloat(amount) <= 0) {
       setError('Please enter a valid amount');
@@ -223,7 +250,7 @@ const { data: balance } = useReadContract({
             </h3>
           </div>
           <p className={`text-4xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            {balance?.toString()} WILDCOINS
+            {formattedBalance} WC
           </p>
         </div>
         
