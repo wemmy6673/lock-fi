@@ -1,159 +1,138 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
-/**
- * @title IERC20
- * @dev Interface for ERC20 token standard
- */
-interface IERC20 {
-    function transfer(address to, uint256 amount) external returns (bool);
-    function transferFrom(address from, address to, uint256 amount) external returns (bool);
-    function balanceOf(address account) external view returns (uint256);
-    function approve(address spender, uint256 amount) external returns (bool);
-    function allowance(address owner, address spender) external view returns (uint256);
-}
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-/**
- * @title TokenTimelockVault
- * @notice Lock ERC20 tokens until a future date
- * @dev Users can create multiple vaults with different unlock times
- */
-contract Lock {
+contract TokenVault is ReentrancyGuard {
     struct Vault {
-        address token;          // Address of the ERC20 token
-        uint256 amount;         // Amount of tokens locked
-        uint256 unlockTime;     // Timestamp when tokens can be withdrawn
-        bool withdrawn;         // Whether tokens have been withdrawn
+        uint256 amount;
+        uint256 unlockTime;
+        bool withdrawn;
+    }
+
+    // Token to be locked
+    IERC20 public token;
+    
+    // Mapping from user address to their vault IDs to vault data
+    mapping(address => mapping(uint256 => Vault)) public vaults;
+    
+    // Mapping from user address to their vault count
+    mapping(address => uint256) public vaultCount;
+    
+    // Events
+    event VaultCreated(address indexed user, uint256 vaultId, uint256 amount, uint256 unlockTime);
+    event TokensWithdrawn(address indexed user, uint256 vaultId, uint256 amount);
+    
+    constructor(address _tokenAddress) {
+        require(_tokenAddress != address(0), "Invalid token address");
+        token = IERC20(_tokenAddress);
     }
     
-    // Mapping: user address => array of their vaults
-    mapping(address => Vault[]) public vaults;
-    
-    // Events for tracking activity
-    event VaultCreated(
-        address indexed user,
-        uint256 indexed vaultId,
-        address indexed token,
-        uint256 amount,
-        uint256 unlockTime
-    );
-    
-    event TokensWithdrawn(
-        address indexed user,
-        uint256 indexed vaultId,
-        address indexed token,
-        uint256 amount
-    );
-    
     /**
-     * @notice Create a new vault to lock tokens
-     * @param _token Address of the ERC20 token to lock
-     * @param _amount Amount of tokens to lock
-     * @param _unlockTime Unix timestamp when tokens can be withdrawn
-     * @dev User must have approved this contract to spend tokens before calling
+     * @dev Create a new vault by locking tokens
+     * @param amount Amount of tokens to lock
+     * @param unlockTime Unix timestamp when tokens can be withdrawn
      */
-    function createVault(
-        address _token,
-        uint256 _amount,
-        uint256 _unlockTime
-    ) external {
-        require(_token != address(0), "Invalid token address");
-        require(_amount > 0, "Amount must be greater than 0");
-        require(_unlockTime > block.timestamp, "Unlock time must be in future");
+    function createVault(uint256 amount, uint256 unlockTime) external nonReentrant {
+        require(amount > 0, "Amount must be greater than 0");
+        require(unlockTime > block.timestamp, "Unlock time must be in the future");
         
-        // Transfer tokens from user to this contract
-        // User must have called token.approve(vaultAddress, amount) first
-        IERC20 token = IERC20(_token);
-        require(
-            token.transferFrom(msg.sender, address(this), _amount),
-            "Token transfer failed"
-        );
+        // Transfer tokens from user to contract
+        require(token.transferFrom(msg.sender, address(this), amount), "Token transfer failed");
         
-        // Create and store the vault
-        uint256 vaultId = vaults[msg.sender].length;
-        vaults[msg.sender].push(Vault({
-            token: _token,
-            amount: _amount,
-            unlockTime: _unlockTime,
+        // Get the next vault ID for this user
+        uint256 vaultId = vaultCount[msg.sender];
+        
+        // Create the vault
+        vaults[msg.sender][vaultId] = Vault({
+            amount: amount,
+            unlockTime: unlockTime,
             withdrawn: false
-        }));
+        });
         
-        emit VaultCreated(msg.sender, vaultId, _token, _amount, _unlockTime);
+        // Increment vault count
+        vaultCount[msg.sender]++;
+        
+        emit VaultCreated(msg.sender, vaultId, amount, unlockTime);
     }
     
     /**
-     * @notice Withdraw tokens from a vault after unlock time
-     * @param _index Index of the vault to withdraw from
+     * @dev Withdraw tokens from a vault
+     * @param vaultId The ID of the vault to withdraw from
      */
-    function withdraw(uint256 _index) external {
-        require(_index < vaults[msg.sender].length, "Vault does not exist");
+    function withdraw(uint256 vaultId) external nonReentrant {
+        require(vaultId < vaultCount[msg.sender], "Vault does not exist");
         
-        Vault storage vault = vaults[msg.sender][_index];
-        require(!vault.withdrawn, "Already withdrawn");
-        require(block.timestamp >= vault.unlockTime, "Still locked");
+        Vault storage vault = vaults[msg.sender][vaultId];
         
+        require(!vault.withdrawn, "Tokens already withdrawn");
+        require(block.timestamp >= vault.unlockTime, "Tokens are still locked");
+        require(vault.amount > 0, "No tokens to withdraw");
+        
+        uint256 amount = vault.amount;
+        
+        // Mark as withdrawn
         vault.withdrawn = true;
         
         // Transfer tokens back to user
-        IERC20 token = IERC20(vault.token);
-        require(
-            token.transfer(msg.sender, vault.amount),
-            "Token transfer failed"
-        );
+        require(token.transfer(msg.sender, amount), "Token transfer failed");
         
-        emit TokensWithdrawn(msg.sender, _index, vault.token, vault.amount);
+        emit TokensWithdrawn(msg.sender, vaultId, amount);
     }
     
     /**
-     * @notice Get the number of vaults for a user
-     * @param _user Address of the user
-     * @return Number of vaults
+     * @dev Get vault details
+     * @param user User address
+     * @param vaultId Vault ID
      */
-    function getVaultCount(address _user) external view returns (uint256) {
-        return vaults[_user].length;
+    function getVault(address user, uint256 vaultId) external view returns (
+        uint256 amount,
+        uint256 unlockTime,
+        bool withdrawn,
+        bool isUnlocked
+    ) {
+        require(vaultId < vaultCount[user], "Vault does not exist");
+        
+        Vault memory vault = vaults[user][vaultId];
+        
+        return (
+            vault.amount,
+            vault.unlockTime,
+            vault.withdrawn,
+            block.timestamp >= vault.unlockTime
+        );
     }
     
     /**
-     * @notice Get details of a specific vault
-     * @param _user Address of the user
-     * @param _index Index of the vault
-     * @return token Address of the locked token
-     * @return amount Amount of tokens locked
-     * @return unlockTime When tokens can be withdrawn
-     * @return withdrawn Whether tokens have been withdrawn
+     * @dev Get all vault IDs for a user
+     * @param user User address
      */
-    function getVault(address _user, uint256 _index)
-        external
-        view
-        returns (
-            address token,
-            uint256 amount,
-            uint256 unlockTime,
-            bool withdrawn
-        )
-    {
-        require(_index < vaults[_user].length, "Vault does not exist");
-        Vault memory vault = vaults[_user][_index];
-        return (vault.token, vault.amount, vault.unlockTime, vault.withdrawn);
+    function getUserVaults(address user) external view returns (uint256[] memory) {
+        uint256 count = vaultCount[user];
+        uint256[] memory vaultIds = new uint256[](count);
+        
+        for (uint256 i = 0; i < count; i++) {
+            vaultIds[i] = i;
+        }
+        
+        return vaultIds;
     }
     
     /**
-     * @notice Get all vaults for a user
-     * @param _user Address of the user
-     * @return Array of all user's vaults
+     * @dev Get total locked balance for a user (excluding withdrawn vaults)
+     * @param user User address
      */
-    function getAllVaults(address _user) external view returns (Vault[] memory) {
-        return vaults[_user];
-    }
-    
-    /**
-     * @notice Check if a vault is unlocked
-     * @param _user Address of the user
-     * @param _index Index of the vault
-     * @return true if unlocked, false if still locked
-     */
-    function isUnlocked(address _user, uint256 _index) external view returns (bool) {
-        require(_index < vaults[_user].length, "Vault does not exist");
-        return block.timestamp >= vaults[_user][_index].unlockTime;
+    function getTotalLocked(address user) external view returns (uint256) {
+        uint256 total = 0;
+        uint256 count = vaultCount[user];
+        
+        for (uint256 i = 0; i < count; i++) {
+            if (!vaults[user][i].withdrawn) {
+                total += vaults[user][i].amount;
+            }
+        }
+        
+        return total;
     }
 }
