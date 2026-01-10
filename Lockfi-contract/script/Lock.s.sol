@@ -8,10 +8,12 @@ contract LockScript is Script {
 
     function run() external {
 
+        address _tokenAddress = 0x9F6fc2403352748E35b7c55fF1b7E2D46927A326;
+
         Lock lock;
 
         vm.startBroadcast();
-         lock = new Lock();
+         lock = new Lock(_tokenAddress);
         vm.stopBroadcast();
     }
 }
