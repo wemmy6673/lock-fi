@@ -24,8 +24,7 @@ export default function App() {
 
   return (
     <DashboardPage 
-      isDark={isDark}
-      toggleTheme={toggleTheme}
+      
     />
   );
 }

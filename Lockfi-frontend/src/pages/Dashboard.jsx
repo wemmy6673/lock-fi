@@ -1,12 +1,12 @@
 import { useAccount, useDisconnect } from 'wagmi';
 import { useState, useEffect } from 'react';
-import { Lock, Sun, Moon, Clock, Coins, Unlock } from 'lucide-react';
+import { Lock, Clock, Coins, Unlock } from 'lucide-react';
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
 import { wagmiContractConfig } from '../../contract';
 import { lockContractConfig } from '../../lock';
 
-function Dashboard({ isDark, toggleTheme }) {
+function Dashboard() {
   const { address: walletAddress } = useAccount();
   const { disconnect } = useDisconnect();
   const [amount, setAmount] = useState('');
@@ -42,18 +42,23 @@ function Dashboard({ isDark, toggleTheme }) {
     args: [walletAddress],
     query: {
       enabled: !!walletAddress,
+      refetchInterval: false, // Disable auto-refetch to prevent input issues
     },
   });
 
   // Get user's vault IDs
-  const { data: vaultIds, refetch: refetchVaultIds } = useReadContract({
+  const { data: vaultIdsRaw, refetch: refetchVaultIds } = useReadContract({
     ...lockContractConfig,
     functionName: 'getUserVaults',
     args: [walletAddress],
     query: {
       enabled: !!walletAddress,
+      refetchInterval: false, // Disable auto-refetch to prevent input issues
     },
   });
+
+  // Convert BigInt array to regular numbers to avoid serialization issues
+  const vaultIds = vaultIdsRaw ? vaultIdsRaw.map(id => Number(id)) : [];
 
   // Format balance
   const formattedBalance = balance && decimals 
@@ -111,7 +116,7 @@ function Dashboard({ isDark, toggleTheme }) {
 
   const handleApprove = async () => {
     try {
-      const amountToApprove = parseUnits('1000000', decimals || 18); // Approve large amount
+      const amountToApprove = parseUnits('1000000', decimals || 18);
       
       approveTokens({
         ...wagmiContractConfig,
@@ -196,50 +201,25 @@ function Dashboard({ isDark, toggleTheme }) {
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      isDark ? 'bg-gray-900' : 'bg-gray-50'
-    }`}>
+    <div className="min-h-screen bg-black text-white">
       {/* Header */}
-      <div className={`border-b transition-colors duration-300 ${
-        isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-      }`}>
+      <div className="border-b border-gray-800 bg-gray-950">
         <div className="lg:w-3/4 mx-auto px-6 py-6 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${
-              isDark ? 'bg-gradient-to-br from-purple-600 to-blue-600' : 'bg-gradient-to-br from-purple-500 to-blue-500'
-            }`}>
+            <div className="p-2 rounded-lg bg-green-600">
               <Lock size={24} className="text-white" />
             </div>
-            <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              Lock-fi
-            </h2>
+            <h2 className="text-2xl font-bold text-white hidden md:flex">Lock-fi</h2>
           </div>
           
           <div className="flex items-center gap-4">
-            <div className={`px-4 py-2 rounded-lg font-mono text-sm ${
-              isDark ? 'bg-gray-700 text-green-400' : 'bg-gray-100 text-green-600'
-            }`}>
+            <div className="px-4 py-2 rounded-lg bg-gray-900 text-green-400 font-mono text-sm border border-gray-800">
               {truncateAddress(walletAddress)}
             </div>
-            
-            <button
-              onClick={toggleTheme}
-              className={`p-2 rounded-lg transition-colors duration-300 ${
-                isDark 
-                  ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400' 
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
-              }`}
-            >
-              {isDark ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
 
             <button
               onClick={() => disconnect()}
-              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors duration-300 ${
-                isDark
-                  ? 'bg-red-600 hover:bg-red-700 text-white'
-                  : 'bg-red-500 hover:bg-red-600 text-white'
-              }`}
+              className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white transition"
             >
               Disconnect
             </button>
@@ -251,29 +231,25 @@ function Dashboard({ isDark, toggleTheme }) {
       <div className="lg:w-3/4 mx-auto px-6 py-8">
         {/* Notifications */}
         {error && (
-          <div className="mb-4 p-4 bg-red-500 text-white rounded-lg font-semibold">
+          <div className="mb-4 p-4 bg-red-600 text-white rounded-lg font-semibold">
             {error}
           </div>
         )}
         {success && (
-          <div className="mb-4 p-4 bg-green-500 text-white rounded-lg font-semibold">
+          <div className="mb-4 p-4 bg-green-600 text-white rounded-lg font-semibold">
             {success}
           </div>
         )}
 
         {/* Balance Card */}
-        <div className={`rounded-xl px-6 py-16 mb-8 transition-colors duration-300 ${
-          isDark 
-            ? 'bg-gradient-to-br from-purple-900/50 to-blue-900/50 border border-purple-700/50' 
-            : 'bg-gradient-to-br from-purple-100 to-blue-100 border border-purple-300 shadow-lg'
-        }`}>
+        <div className="rounded-xl px-6 py-16 mb-8 bg-gray-950 border border-gray-800">
           <div className="flex items-center gap-3 mb-2">
-            <Coins size={24} className={isDark ? 'text-purple-400' : 'text-purple-600'} />
-            <h3 className={`text-lg font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+            <Coins size={24} className="text-green-400" />
+            <h3 className="text-lg font-semibold text-gray-300">
               Available Balance
             </h3>
           </div>
-          <p className={`text-4xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <p className="text-4xl font-bold mb-4 text-white">
             {formattedBalance} WC
           </p>
           
@@ -281,75 +257,59 @@ function Dashboard({ isDark, toggleTheme }) {
           <button
             onClick={handleApprove}
             disabled={isApproving}
-            className={`px-6 py-2 rounded-lg font-semibold transition ${
-              isDark 
-                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            className="px-6 py-2 rounded-lg font-semibold bg-green-600 hover:bg-green-700 text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isApproving ? 'Approving...' : 'Approve Vault Contract'}
           </button>
-          <p className={`mt-2 text-sm ${isDark ? 'text-purple-300' : 'text-gray-600'}`}>
+          <p className="mt-2 text-sm text-gray-400">
             Click this once to allow the vault contract to lock your tokens
           </p>
         </div>
         
         {/* Create New Vault */}
-        <div className={`rounded-xl px-6 py-8 mb-8 transition-colors duration-300 ${
-          isDark 
-            ? 'bg-gradient-to-br from-purple-900/50 to-blue-900/50 border border-purple-700/50' 
-            : 'bg-gradient-to-br from-purple-100 to-blue-100 border border-purple-300 shadow-lg'
-        }`}>
+        <div className="rounded-xl px-6 py-8 mb-8 bg-gray-950 border border-gray-800">
           <div className="flex items-center gap-2 mb-6">
-            <Lock className={isDark ? 'text-purple-400' : 'text-purple-600'} size={24} />
-            <h2 className={`text-lg font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+            <Lock className="text-green-400" size={24} />
+            <h2 className="text-lg font-semibold text-gray-300">
               Create New Vault
             </h2>
           </div>
           
           <div className="space-y-4">
             <div>
-              <label className={`block mb-2 ${isDark ? 'text-purple-200' : 'text-gray-700'}`}>
-                Amount (WC)
-              </label>
+              <label className="block mb-2 text-gray-400">Amount (WC)</label>
               <input
                 type="number"
                 step="0.01"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.0"
-                className={`w-full border rounded-lg px-4 py-3 ${
-                  isDark 
-                    ? 'bg-white/10 border-purple-400 text-white placeholder-purple-300' 
-                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
-                } focus:outline-none focus:border-purple-500`}
+                autoComplete="off"
+                className="w-full bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
+                style={{
+                  colorScheme: 'dark'
+                }}
               />
             </div>
 
             <div>
-              <label className={`block mb-2 ${isDark ? 'text-purple-200' : 'text-gray-700'}`}>
-                Unlock Date & Time
-              </label>
+              <label className="block mb-2 text-gray-400">Unlock Date & Time</label>
               <input
                 type="datetime-local"
                 value={unlockDate}
                 onChange={(e) => setUnlockDate(e.target.value)}
-                className={`w-full border rounded-lg px-4 py-3 ${
-                  isDark 
-                    ? 'bg-white/10 border-purple-400 text-white' 
-                    : 'bg-white border-gray-300 text-gray-900'
-                } focus:outline-none focus:border-purple-500`}
+                autoComplete="off"
+                className="w-full bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+                style={{
+                  colorScheme: 'dark'
+                }}
               />
             </div>
 
             <button
               onClick={handleCreateVault}
               disabled={isCreating}
-              className={`w-full font-bold py-3 px-6 rounded-lg transition flex items-center justify-center gap-2 ${
-                isDark
-                  ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                  : 'bg-purple-500 hover:bg-purple-600 text-white'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              className="w-full font-bold py-3 px-6 rounded-lg bg-green-600 hover:bg-green-700 text-white transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Lock size={20} />
               {isCreating ? 'Creating Vault...' : 'Lock Funds'}
@@ -367,7 +327,6 @@ function Dashboard({ isDark, toggleTheme }) {
           getTimeRemaining={getTimeRemaining}
           handleWithdraw={handleWithdraw}
           isWithdrawing={isWithdrawing}
-          isDark={isDark}
         />
       </div>
     </div>
@@ -383,47 +342,34 @@ function VaultsList({
   currentTime, 
   getTimeRemaining, 
   handleWithdraw, 
-  isWithdrawing,
-  isDark 
+  isWithdrawing
 }) {
   if (!vaultIds || vaultIds.length === 0) {
     return (
-      <div className={`rounded-2xl p-6 border ${
-        isDark ? 'bg-white/10 border-gray-700' : 'bg-white border-gray-200'
-      }`}>
-        <h2 className={`text-2xl font-bold mb-6 flex items-center gap-2 ${
-          isDark ? 'text-white' : 'text-gray-900'
-        }`}>
-          <Clock className={isDark ? 'text-purple-400' : 'text-purple-600'} size={24} />
+      <div className="rounded-2xl p-6 bg-gray-950 border border-gray-800">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-white">
+          <Clock className="text-green-400" size={24} />
           Your Vaults
         </h2>
         <div className="text-center py-12">
-          <Lock className={`mx-auto mb-4 opacity-50 ${
-            isDark ? 'text-purple-400' : 'text-purple-600'
-          }`} size={48} />
-          <p className={isDark ? 'text-purple-300' : 'text-gray-600'}>
-            No vaults created yet
-          </p>
+          <Lock className="mx-auto mb-4 text-green-400 opacity-50" size={48} />
+          <p className="text-gray-400">No vaults created yet</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`rounded-2xl p-6 border ${
-      isDark ? 'bg-white/10 border-gray-700' : 'bg-white border-gray-200'
-    }`}>
-      <h2 className={`text-2xl font-bold mb-6 flex items-center gap-2 ${
-        isDark ? 'text-white' : 'text-gray-900'
-      }`}>
-        <Clock className={isDark ? 'text-purple-400' : 'text-purple-600'} size={24} />
+    <div className="rounded-2xl p-6 bg-gray-950 border border-gray-800">
+      <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-white">
+        <Clock className="text-green-400" size={24} />
         Your Vaults
       </h2>
 
       <div className="space-y-4">
         {vaultIds.map((vaultId) => (
           <VaultCard
-            key={vaultId.toString()}
+            key={vaultId}
             vaultId={vaultId}
             walletAddress={walletAddress}
             lockContractConfig={lockContractConfig}
@@ -432,7 +378,6 @@ function VaultsList({
             getTimeRemaining={getTimeRemaining}
             handleWithdraw={handleWithdraw}
             isWithdrawing={isWithdrawing}
-            isDark={isDark}
           />
         ))}
       </div>
@@ -449,16 +394,15 @@ function VaultCard({
   currentTime, 
   getTimeRemaining, 
   handleWithdraw, 
-  isWithdrawing,
-  isDark 
+  isWithdrawing
 }) {
   const { data: vaultData } = useReadContract({
     ...lockContractConfig,
     functionName: 'getVault',
-    args: [walletAddress, vaultId],
+    args: [walletAddress, BigInt(vaultId)],
     query: {
       enabled: !!walletAddress,
-      refetchInterval: 5000, // Refetch every 5 seconds
+      refetchInterval: 5000,
     },
   });
 
@@ -468,42 +412,42 @@ function VaultCard({
   const formattedAmount = decimals ? formatUnits(amount, decimals) : '0';
 
   return (
-    <div className={`border rounded-lg p-4 ${
+    <div className={`border rounded-lg p-4 bg-gray-900 ${
       withdrawn
-        ? 'border-gray-500'
+        ? 'border-gray-700'
         : isUnlocked
-        ? 'border-green-400'
-        : isDark ? 'border-purple-400' : 'border-purple-500'
-    } ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+        ? 'border-green-500'
+        : 'border-gray-800'
+    }`}>
       <div className="flex justify-between items-center mb-2">
         <div className="flex items-center gap-2">
           {withdrawn ? (
-            <Unlock className="text-gray-400" size={20} />
+            <Unlock className="text-gray-500" size={20} />
           ) : isUnlocked ? (
             <Unlock className="text-green-400" size={20} />
           ) : (
-            <Lock className={isDark ? 'text-purple-400' : 'text-purple-600'} size={20} />
+            <Lock className="text-green-400" size={20} />
           )}
-          <span className={`font-bold text-xl ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <span className="font-bold text-xl text-white">
             {parseFloat(formattedAmount).toFixed(4)} WC
           </span>
         </div>
         <span
           className={`px-3 py-1 rounded-full text-sm font-semibold ${
             withdrawn
-              ? 'bg-gray-500 text-gray-200'
+              ? 'bg-gray-700 text-gray-400'
               : isUnlocked
-              ? 'bg-green-500 text-white'
-              : 'bg-purple-500 text-white'
+              ? 'bg-green-600 text-white'
+              : 'bg-gray-800 text-gray-300'
           }`}
         >
           {withdrawn ? 'Withdrawn' : getTimeRemaining(unlockTime)}
         </span>
       </div>
       
-      <div className={`text-sm mb-3 ${isDark ? 'text-purple-200' : 'text-gray-600'}`}>
+      <div className="text-sm mb-3 text-gray-400">
         <p>Unlocks: {new Date(Number(unlockTime) * 1000).toLocaleString()}</p>
-        <p>Vault ID: #{vaultId.toString()}</p>
+        <p>Vault ID: #{vaultId}</p>
       </div>
 
       {!withdrawn && (
@@ -513,7 +457,7 @@ function VaultCard({
           className={`w-full py-2 px-4 rounded-lg font-semibold transition ${
             isUnlocked && !isWithdrawing
               ? 'bg-green-600 hover:bg-green-700 text-white cursor-pointer'
-              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              : 'bg-gray-800 text-gray-500 cursor-not-allowed'
           } disabled:opacity-50`}
         >
           {isWithdrawing ? 'Withdrawing...' : isUnlocked ? 'Withdraw' : 'Locked'}
