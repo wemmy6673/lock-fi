@@ -8,12 +8,12 @@ function Landing() {
       {/* Main Content */}
       <div className="flex flex-col items-center justify-center min-h-screen px-4">
         {/* Logo Icon */}
-        <div className="mb-8 p-8 rounded-full bg-green-600">
-          <Lock size={80} className="text-white" />
+        <div className="mb-4 p-8 rounded-full bg-green-600">
+          <Lock size={40} className="text-white" />
         </div>
 
         {/* Title */}
-        <h1 className="text-5xl font-bold mb-12 text-white">
+        <h1 className="text-2xl md:text-5xl font-bold mb-6 text-white">
           Lock-fi
         </h1>
 
@@ -60,7 +60,7 @@ function Landing() {
         </ConnectButton.Custom>
 
         <p className="mt-8 text-sm text-gray-400">
-          Connect your wallet to lock or access unlocked tokens.
+          Connect your wallet to access dashboard.
         </p>
       </div>
     </div>

@@ -242,7 +242,7 @@ function Dashboard() {
         )}
 
         {/* Balance Card */}
-        <div className="rounded-xl px-6 py-16 mb-8 bg-gray-950 border border-gray-800">
+        <div className="rounded-xl px-6 py-16 mb-8 bg-black">
           <div className="flex items-center gap-3 mb-2">
             <Coins size={24} className="text-green-400" />
             <h3 className="text-lg font-semibold text-gray-300">
@@ -262,7 +262,7 @@ function Dashboard() {
             {isApproving ? 'Approving...' : 'Approve Vault Contract'}
           </button>
           <p className="mt-2 text-sm text-gray-400">
-            Click this once to allow the vault contract to lock your tokens
+            Click this once to allow the vault contract to lock your wildcoin tokens
           </p>
         </div>
         
@@ -328,7 +328,27 @@ function Dashboard() {
           handleWithdraw={handleWithdraw}
           isWithdrawing={isWithdrawing}
         />
+
+
+      
       </div>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-800 bg-gray-950 mt-16">
+        <div className="lg:w-3/4 mx-auto px-6 py-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Lock size={18} className="text-green-400" />
+              <span className="text-gray-400 text-sm">
+                Built by <span className="text-green-400 font-semibold">Wemi</span> & <span className="text-green-400 font-semibold">Claude</span>
+              </span>
+            </div>
+            <div className="text-gray-500 text-sm">
+              © 2026 Lock-fi. Secure your tokens on-chain.
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
