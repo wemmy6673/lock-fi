@@ -1,6 +1,6 @@
 # Project Name
 
-Lockfi- A simple Decentralized app that has to do with Locking a custom token ("WildCoin" created by me ) for a stipulated amount of time.
+Lockfi- A simple Decentralized app that has to do with Locking a custom ERC-20 token ("WildCoin" created by me ) for a stipulated amount of time.
 
 ---
 
